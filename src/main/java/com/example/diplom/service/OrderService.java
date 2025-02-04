@@ -53,6 +53,7 @@ public class OrderService {
                 .profit(BigDecimal.ZERO)
                 .createdAt(LocalDateTime.now())
                 .status(OrderStatus.PENDING)
+                .orderItems(new ArrayList<>()) // Инициализация списка
                 .build();
 
         // Сохраняем заказ, чтобы получить его ID
@@ -77,8 +78,11 @@ public class OrderService {
                     .build();
         }).collect(Collectors.toList());
 
+        // Устанавливаем позиции в заказ
+        savedOrder.setOrderItems(orderItems);
+
         // Сохраняем позиции заказа
-        orderItems.forEach(orderItem -> orderItemRepository.save(orderItem));
+        orderItemRepository.saveAll(orderItems);
 
         // Обновляем итоговые суммы заказа
         BigDecimal totalCost = orderItems.stream().map(OrderItem::getTotalCost).reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -89,6 +93,7 @@ public class OrderService {
         savedOrder.setTotalPrice(totalPrice);
         savedOrder.setProfit(profit);
 
+        // Отправка уведомления
         telegramNotificationService.sendOrderNotification(supplier, savedOrder);
 
         return orderRepository.save(savedOrder);

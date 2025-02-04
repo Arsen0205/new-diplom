@@ -2,6 +2,7 @@ package com.example.diplom.service;
 
 
 import com.example.diplom.models.Order;
+import com.example.diplom.models.OrderItem;
 import com.example.diplom.models.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,7 +25,16 @@ public class TelegramNotificationService {
                 "Общая стоимость: " + order.getTotalPrice() + " ₽\n" +
                 "Прибыль: " + order.getProfit() + " ₽\n" +
                 "Статус: " + order.getStatus() + "\n\n" +
-                "Принять: /accept_" + order.getId() + "\n" +
+                "Товары в заказе:\n";
+
+        if (order.getOrderItems() != null && !order.getOrderItems().isEmpty()) {
+            for (OrderItem item : order.getOrderItems()) {
+                message += item.getProduct().getTitle() + " (Кол-во: " + item.getQuantity() + ", Цена: " + item.getSellingPrice() + " ₽)\n";
+            }
+        } else {
+            message += "Товары в заказе отсутствуют.\n";
+        }
+               message += "Принять: /accept_" + order.getId() + "\n" +
                 "Отклонить: /reject_" + order.getId();
 
         String url = "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN + "/sendMessage?chat_id=" + TELEGRAM_CHAT_ID + "&text=" + message;
