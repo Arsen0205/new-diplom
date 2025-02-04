@@ -3,7 +3,9 @@ package com.example.diplom.service;
 
 import com.example.diplom.models.Order;
 import com.example.diplom.models.OrderItem;
+import com.example.diplom.models.Product;
 import com.example.diplom.models.Supplier;
+import com.example.diplom.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -15,6 +17,7 @@ import java.lang.ref.PhantomReference;
 public class TelegramNotificationService {
 
     private final RestTemplate restTemplate;
+    private final ProductRepository productRepository;
 
     private final String TELEGRAM_BOT_TOKEN="8067199276:AAHkNyreW9RthpGYZsTBc6V543MvZOf-Vu0";
     private final String TELEGRAM_CHAT_ID="1003385031";
@@ -29,7 +32,7 @@ public class TelegramNotificationService {
 
         if (order.getOrderItems() != null && !order.getOrderItems().isEmpty()) {
             for (OrderItem item : order.getOrderItems()) {
-                message += item.getProduct().getTitle() + " (Кол-во: " + item.getQuantity() + ", Цена: " + item.getSellingPrice() + " ₽)\n";
+                message += item.getProduct().getTitle() + " (Кол-во: " + item.getQuantity() + ", Цена: " + item.getProduct().getSellingPrice() + " ₽)\n";
             }
         } else {
             message += "Товары в заказе отсутствуют.\n";

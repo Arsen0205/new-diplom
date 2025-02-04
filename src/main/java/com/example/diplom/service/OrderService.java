@@ -64,8 +64,10 @@ public class OrderService {
             Product product = productRepository.findById(itemDto.getProductId())
                     .orElseThrow(() -> new IllegalArgumentException("Продукт не найден"));
 
-            BigDecimal totalCost = itemDto.getCostPrice().multiply(BigDecimal.valueOf(itemDto.getQuantity()));
-            BigDecimal totalPrice = itemDto.getSellingPrice().multiply(BigDecimal.valueOf(itemDto.getQuantity()));
+            //BigDecimal totalCost = itemDto.getCostPrice().multiply(BigDecimal.valueOf(itemDto.getQuantity()));
+            BigDecimal totalCost = product.getPrice().multiply(BigDecimal.valueOf(itemDto.getQuantity()));
+            //BigDecimal totalPrice = itemDto.getSellingPrice().multiply(BigDecimal.valueOf(itemDto.getQuantity()));
+            BigDecimal totalPrice = product.getSellingPrice().multiply(BigDecimal.valueOf(itemDto.getQuantity()));
 
             return OrderItem.builder()
                     .order(savedOrder) // Указываем сохраненный Order
