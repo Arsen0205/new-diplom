@@ -1,6 +1,7 @@
 package com.example.diplom.service;
 
 import com.example.diplom.dto.request.CreateOrderRequest;
+import com.example.diplom.dto.request.OrderItemDtoRequest;
 import com.example.diplom.models.Order;
 import com.example.diplom.models.OrderItem;
 import com.example.diplom.models.Product;
@@ -45,7 +46,11 @@ public class OrderService {
         Supplier supplier = supplierRepository.findById(request.getSupplierId())
                 .orElseThrow(() -> new IllegalArgumentException("Поставщик не найден"));
 
-        // Создаем заказ без позиций
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            throw new IllegalArgumentException("Заказ должен содержать хотя бы один товар.");
+        }
+
+        // Создаем заказ
         Order newOrder = Order.builder()
                 .supplier(supplier)
                 .totalCost(BigDecimal.ZERO)
@@ -53,38 +58,49 @@ public class OrderService {
                 .profit(BigDecimal.ZERO)
                 .createdAt(LocalDateTime.now())
                 .status(OrderStatus.PENDING)
-                .orderItems(new ArrayList<>()) // Инициализация списка
+                .orderItems(new ArrayList<>())
                 .build();
 
         // Сохраняем заказ, чтобы получить его ID
         Order savedOrder = orderRepository.save(newOrder);
 
-        // Создаем позиции заказа
-        List<OrderItem> orderItems = request.getItems().stream().map(itemDto -> {
+        List<OrderItem> orderItems = new ArrayList<>();
+
+        for (OrderItemDtoRequest itemDto : request.getItems()) {
             Product product = productRepository.findById(itemDto.getProductId())
                     .orElseThrow(() -> new IllegalArgumentException("Продукт не найден"));
 
-            //BigDecimal totalCost = itemDto.getCostPrice().multiply(BigDecimal.valueOf(itemDto.getQuantity()));
+            // Проверяем доступное количество товара
+            if (product.getQuantity() < itemDto.getQuantity()) {
+                throw new IllegalArgumentException("Недостаточно товара: " + product.getTitle());
+            }
+
             BigDecimal totalCost = product.getPrice().multiply(BigDecimal.valueOf(itemDto.getQuantity()));
-            //BigDecimal totalPrice = itemDto.getSellingPrice().multiply(BigDecimal.valueOf(itemDto.getQuantity()));
             BigDecimal totalPrice = product.getSellingPrice().multiply(BigDecimal.valueOf(itemDto.getQuantity()));
 
-            return OrderItem.builder()
-                    .order(savedOrder) // Указываем сохраненный Order
+            // Создаем позицию заказа
+            OrderItem orderItem = OrderItem.builder()
+                    .order(savedOrder)
                     .product(product)
                     .quantity(itemDto.getQuantity())
-                    .costPrice(itemDto.getCostPrice())
-                    .sellingPrice(itemDto.getSellingPrice())
+                    .costPrice(product.getPrice())
+                    .sellingPrice(product.getSellingPrice())
                     .totalCost(totalCost)
                     .totalPrice(totalPrice)
                     .build();
-        }).collect(Collectors.toList());
 
-        // Устанавливаем позиции в заказ
-        savedOrder.setOrderItems(orderItems);
+            orderItems.add(orderItem);
+
+            // Уменьшаем количество товара на складе
+            product.setQuantity(product.getQuantity() - itemDto.getQuantity());
+            productRepository.save(product);
+        }
 
         // Сохраняем позиции заказа
         orderItemRepository.saveAll(orderItems);
+
+        // Обновляем заказ с товарами
+        savedOrder.getOrderItems().addAll(orderItems);
 
         // Обновляем итоговые суммы заказа
         BigDecimal totalCost = orderItems.stream().map(OrderItem::getTotalCost).reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -95,7 +111,7 @@ public class OrderService {
         savedOrder.setTotalPrice(totalPrice);
         savedOrder.setProfit(profit);
 
-        // Отправка уведомления
+        // Отправка уведомления поставщику
         telegramNotificationService.sendOrderNotification(supplier, savedOrder);
 
         return orderRepository.save(savedOrder);
