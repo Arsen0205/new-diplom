@@ -27,6 +27,9 @@ public class Supplier {
     @Column(name="login_telegram", unique = true)
     private String loginTelegram;
 
+    @Column(name = "chat_id", nullable = true, unique = true)
+    private Long chatId;
+
     @Enumerated(EnumType.STRING)
     private Role role;
 

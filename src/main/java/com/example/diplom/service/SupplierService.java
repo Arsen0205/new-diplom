@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 public class SupplierService {
     private final SupplierRepository supplierRepository;
     private final PasswordEncoder passwordEncoder;
+    private final TelegramNotificationService telegramNotificationService;
 
     public Supplier registerSupplier(SupplierRegisterDtoRequest request){
         if(supplierRepository.findByLogin(request.getLogin()).isPresent()){
@@ -21,9 +22,10 @@ public class SupplierService {
 
         Supplier supplier = new Supplier();
         supplier.setLogin(request.getLogin());
-        supplier.setPassword(request.getPassword());
+        supplier.setPassword(passwordEncoder.encode(request.getPassword()));
         supplier.setLoginTelegram(request.getLoginTelegram());
         supplier.setRole(request.getRole());
+        supplier.setChatId(telegramNotificationService.getChatIdByUsername(request.getLoginTelegram()));
 
         return supplierRepository.save(supplier);
     }

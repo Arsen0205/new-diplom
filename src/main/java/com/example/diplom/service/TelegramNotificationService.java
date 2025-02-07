@@ -8,7 +8,10 @@ import com.example.diplom.models.Supplier;
 import com.example.diplom.models.enums.OrderStatus;
 import com.example.diplom.repository.OrderRepository;
 import com.example.diplom.repository.ProductRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -25,14 +28,16 @@ public class TelegramNotificationService {
 
     private final String TELEGRAM_BOT_TOKEN="8067199276:AAHkNyreW9RthpGYZsTBc6V543MvZOf-Vu0";
     private final String TELEGRAM_CHAT_ID="1003385031";
-    private final String CUSTOMER_CHAT_ID="953484652";
+    private final String CUSTOMER_CHAT_ID="1003385031";
+    private final String API_URL = "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN;
 
     public void sendOrderNotification(Supplier supplier, Order order) {
         String message = "📦 Новый заказ! \n" +
                 "ID заказа: " + order.getId() + "\n" +
                 "Общая стоимость: " + order.getTotalPrice() + " ₽\n" +
                 "Прибыль: " + order.getProfit() + " ₽\n" +
-                "Статус: " + order.getStatus() + "\n\n" +
+                "Статус: " + order.getStatus() + "\n" +
+                "Адрес: г." + order.getCity() + ", " + order.getAddress() + "\n\n" +
                 "Товары в заказе:\n";
 
         if (order.getOrderItems() != null && !order.getOrderItems().isEmpty()) {
@@ -82,11 +87,43 @@ public class TelegramNotificationService {
     }
 
     private void rejectOrder(Long id){
+        Optional<Order> orderOptional = orderRepository.findById(id);
+        Order order = orderOptional.get();
+
+        orderRepository.delete(order);
+
+        String url = "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN + "/sendMessage?chat_id=" + TELEGRAM_CHAT_ID + "&text=" + "Вы отменили заказ!";
+        restTemplate.getForObject(url, String.class);
+        String text = "❌ Ваш заказ №" + id + " Отменен поставщиком!";
+        String url1 = "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN + "/sendMessage?chat_id=" + CUSTOMER_CHAT_ID + "&text=" + text;
+        restTemplate.getForObject(url1, String.class);
 
     }
 
     private void sendMessage(String chatId, String text) {
         String url = "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN + "/sendMessage?chat_id=" + chatId + "&text=" + text;
         restTemplate.getForObject(url, String.class);
+    }
+
+    public Long getChatIdByUsername(String username){
+        try{
+            String url = API_URL + "/getUpdates";
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode jsonNode = objectMapper.readTree(response.getBody());
+
+            for (JsonNode update : jsonNode.get("result")) {
+                JsonNode message = update.get("message");
+                if (message != null && message.has("chat")) {
+                    JsonNode chat = message.get("chat");
+                    if (chat.has("username") && username.equals(chat.get("username").asText())) {
+                        return chat.get("id").asLong();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }
