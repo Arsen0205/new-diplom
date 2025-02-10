@@ -31,6 +31,8 @@ public class TelegramNotificationService {
     private final String CUSTOMER_CHAT_ID="1003385031";
     private final String API_URL = "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN;
 
+
+    //Отправка оповещения в телеграмме при создании заказа поставщику
     public void sendOrderNotification(Supplier supplier, Order order) {
         String message = "📦 Новый заказ! \n" +
                 "ID заказа: " + order.getId() + "\n" +
@@ -54,7 +56,7 @@ public class TelegramNotificationService {
         restTemplate.getForObject(url, String.class);
     }
 
-
+    //Проверяет на какую кнопку нажал поставщик в телеграмме
     public void handleOrderResponse(String command){
         if(command.startsWith("/accept_")){
             Long orderId = Long.parseLong(command.replace("/accept_", ""));
@@ -62,10 +64,15 @@ public class TelegramNotificationService {
         }else if(command.startsWith("/reject_")){
             Long orderId = Long.parseLong(command.replace("/reject_",""));
             rejectOrder(orderId);
+        } else if (command.startsWith("/shipped_")) {
+            Long orderId = Long.parseLong(command.replace("/shipped_",""));
+            shippedOrder(orderId);
+
         }
     }
 
-    private void acceptOrder(Long id){
+    //Принятие заказа в телеграмм
+    public void acceptOrder(Long id){
         Optional<Order> orderOptional = orderRepository.findById(id);
 
         Order order = orderOptional.get();
@@ -79,14 +86,20 @@ public class TelegramNotificationService {
         order.setStatus(OrderStatus.CONFIRMED);
         orderRepository.save(order);
 
-        String url = "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN + "/sendMessage?chat_id=" + TELEGRAM_CHAT_ID + "&text=" + "Вы подтвердили заказ!";
+        String message = "Вы подтвердили заказ! \n\n" +
+                "Изменить статус заказа: \n" +
+                "В пути: /shipped_" + id + "\n" +
+                "Отменить заказ: /reject_" + id;
+
+        String url = "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN + "/sendMessage?chat_id=" + TELEGRAM_CHAT_ID + "&text=" + message;
         restTemplate.getForObject(url, String.class);
         String text = "✅ Ваш заказ №" + id + " подтвержден поставщиком!";
         String url1 = "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN + "/sendMessage?chat_id=" + CUSTOMER_CHAT_ID + "&text=" + text;
         restTemplate.getForObject(url1, String.class);
     }
 
-    private void rejectOrder(Long id){
+    //Отклонение заказа в телеграмм
+    public void rejectOrder(Long id){
         Optional<Order> orderOptional = orderRepository.findById(id);
         Order order = orderOptional.get();
 
@@ -100,11 +113,26 @@ public class TelegramNotificationService {
 
     }
 
+    public void shippedOrder(Long id){
+        Optional<Order> orderOptional = orderRepository.findById(id);
+        Order order = orderOptional.get();
+
+        order.setStatus(OrderStatus.SHIPPED);
+        orderRepository.save(order);
+
+        String url = "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN + "/sendMessage?chat_id=" + TELEGRAM_CHAT_ID + "&text=" + "Статус заказа изменен";
+        restTemplate.getForObject(url, String.class);
+        String text = "\uD83D\uDE9A Ваш заказ №" + id + " В пути";
+        String url1 = "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN + "/sendMessage?chat_id=" + CUSTOMER_CHAT_ID + "&text=" + text;
+        restTemplate.getForObject(url1, String.class);
+    }
+
     private void sendMessage(String chatId, String text) {
         String url = "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN + "/sendMessage?chat_id=" + chatId + "&text=" + text;
         restTemplate.getForObject(url, String.class);
     }
 
+    //Логика сохранения чат-айди пользователя по логину телеграмма
     public Long getChatIdByUsername(String username){
         try{
             String url = API_URL + "/getUpdates";

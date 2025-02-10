@@ -15,6 +15,7 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final SupplierRepository supplierRepository;
 
+    //Создание товара
     public Product createProduct(AddProductRequestDto request){
         Supplier supplier = supplierRepository.findByLogin(request.getLogin()).orElseThrow(()-> new IllegalArgumentException("Пользователя с таким логином не найден!"));
 

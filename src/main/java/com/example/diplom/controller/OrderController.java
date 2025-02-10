@@ -1,8 +1,8 @@
 package com.example.diplom.controller;
 
+import com.example.diplom.dto.request.ConfirmedOrderDtoRequest;
 import com.example.diplom.dto.request.CreateOrderRequest;
 import com.example.diplom.models.Order;
-import com.example.diplom.models.OrderItem;
 import com.example.diplom.models.enums.OrderStatus;
 import com.example.diplom.service.OrderService;
 import org.springframework.http.HttpStatus;
@@ -34,7 +34,7 @@ public class OrderController {
     }
 
     @PutMapping("/{id}/status")
-    public ResponseEntity<Order> updateOrderStatus(@PathVariable Long id, @RequestParam OrderStatus status) {
+    public ResponseEntity<Order> updateOrderStatus(@RequestBody Long id,  OrderStatus status) {
         return ResponseEntity.ok(orderService.updateOrderStatus(id, status));
     }
 
@@ -48,5 +48,15 @@ public class OrderController {
     public ResponseEntity<Order> createOrder(@RequestBody CreateOrderRequest request) {
         Order order = orderService.createOrder(request);
         return new ResponseEntity<>(order, HttpStatus.CREATED);
+    }
+
+    @PostMapping("/confirmed")
+    public ResponseEntity<Order> confirmedOrder(@RequestBody ConfirmedOrderDtoRequest request){
+        return ResponseEntity.ok(orderService.confirmedOrder(request));
+    }
+
+    @PostMapping("/cancelled")
+    public ResponseEntity<Order> cancelledOrder(@RequestBody ConfirmedOrderDtoRequest request){
+        return ResponseEntity.ok(orderService.cancelledOrder(request));
     }
 }

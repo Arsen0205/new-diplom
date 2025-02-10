@@ -24,7 +24,7 @@ public class TelegramWebhookController {
             }
 
             String text = (String) message.get("text");
-            if (text != null && (text.startsWith("/accept_") || text.startsWith("/reject_"))) {
+            if (text != null && (text.startsWith("/accept_") || text.startsWith("/reject_") || text.startsWith("/shipped_") || text.startsWith("/delivered"))) {
                 telegramNotificationService.handleOrderResponse(text);
             }
 

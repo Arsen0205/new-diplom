@@ -1,5 +1,6 @@
 package com.example.diplom.service;
 
+import com.example.diplom.dto.request.ConfirmedOrderDtoRequest;
 import com.example.diplom.dto.request.CreateOrderRequest;
 import com.example.diplom.dto.request.OrderItemDtoRequest;
 import com.example.diplom.models.Order;
@@ -39,6 +40,7 @@ public class OrderService {
     }
 
 
+    //Создание заказа
     @Transactional
     public Order createOrder(CreateOrderRequest request) {
         Supplier supplier = supplierRepository.findById(request.getSupplierId())
@@ -118,6 +120,7 @@ public class OrderService {
     }
 
 
+    //Обновления статуса заказа
     public Order updateOrderStatus(Long id, OrderStatus status) {
         return orderRepository.findById(id).map(order -> {
             order.setStatus(status);
@@ -125,7 +128,25 @@ public class OrderService {
         }).orElseThrow(() -> new RuntimeException("Заказ не найден"));
     }
 
+    //Удаление заказа
     public void deleteOrder(Long id) {
         orderRepository.deleteById(id);
+    }
+
+    //Подтверждение заказа через сайт
+    public Order confirmedOrder(ConfirmedOrderDtoRequest request){
+        return orderRepository.findById(request.getId()).map(order -> {
+            order.setStatus(OrderStatus.CONFIRMED);
+            telegramNotificationService.acceptOrder(request.getId());
+            return orderRepository.save(order);
+        }).orElseThrow(() -> new RuntimeException("Заказ не найден"));
+    }
+
+    public Order cancelledOrder(ConfirmedOrderDtoRequest request){
+        return orderRepository.findById(request.getId()).map(order -> {
+            order.setStatus(OrderStatus.CANCELLED);
+            telegramNotificationService.rejectOrder(request.getId());
+            return orderRepository.save(order);
+        }).orElseThrow(()-> new RuntimeException("Заказ не найден"));
     }
 }

@@ -15,6 +15,7 @@ public class SupplierService {
     private final PasswordEncoder passwordEncoder;
     private final TelegramNotificationService telegramNotificationService;
 
+    //Регистрация поставщика
     public Supplier registerSupplier(SupplierRegisterDtoRequest request){
         if(supplierRepository.findByLogin(request.getLogin()).isPresent()){
             throw new IllegalArgumentException("Данный логин уже зарегистрирован!");
