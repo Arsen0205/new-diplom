@@ -77,11 +77,13 @@ public class TelegramNotificationService {
 
         Order order = orderOptional.get();
 
-        for(OrderItem item : order.getOrderItems()){
-            Product product = item.getProduct();
-            product.setQuantity(product.getQuantity()-item.getQuantity());
-            productRepository.save(product);
-        }
+        //Уменьшение количества товара на складе
+            for (OrderItem item : order.getOrderItems()) {
+                Product product = item.getProduct();
+                product.setQuantity(product.getQuantity() - item.getQuantity());
+                productRepository.save(product);
+            }
+
 
         order.setStatus(OrderStatus.CONFIRMED);
         orderRepository.save(order);
@@ -103,6 +105,15 @@ public class TelegramNotificationService {
         Optional<Order> orderOptional = orderRepository.findById(id);
         Order order = orderOptional.get();
 
+        //Проверка на статус заказа, если заказ еще не подтвердился, то возвращать товары обратно нет необходимости
+        if(order.getStatus() != OrderStatus.PENDING) {
+            for (OrderItem item : order.getOrderItems()) {
+                Product product = item.getProduct();
+                product.setQuantity(product.getQuantity() + item.getQuantity());
+                productRepository.save(product);
+            }
+        }
+
         orderRepository.delete(order);
 
         String url = "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN + "/sendMessage?chat_id=" + TELEGRAM_CHAT_ID + "&text=" + "Вы отменили заказ!";
@@ -113,6 +124,7 @@ public class TelegramNotificationService {
 
     }
 
+    //Изменение статуса на - в пути
     public void shippedOrder(Long id){
         Optional<Order> orderOptional = orderRepository.findById(id);
         Order order = orderOptional.get();
@@ -120,9 +132,29 @@ public class TelegramNotificationService {
         order.setStatus(OrderStatus.SHIPPED);
         orderRepository.save(order);
 
-        String url = "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN + "/sendMessage?chat_id=" + TELEGRAM_CHAT_ID + "&text=" + "Статус заказа изменен";
+        String message ="Статус заказа изменен \n\n" +
+                "Изменить статус заказа: \n" +
+                "Доставлен: /delivered_" + id +"\n" +
+                "Отменить заказ: /reject_" + id;
+
+        String url = "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN + "/sendMessage?chat_id=" + TELEGRAM_CHAT_ID + "&text=" + message;
         restTemplate.getForObject(url, String.class);
         String text = "\uD83D\uDE9A Ваш заказ №" + id + " В пути";
+        String url1 = "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN + "/sendMessage?chat_id=" + CUSTOMER_CHAT_ID + "&text=" + text;
+        restTemplate.getForObject(url1, String.class);
+    }
+
+    public  void deliveredOrder(Long id){
+        Optional<Order> orderOptional = orderRepository.findById(id);
+        Order order = orderOptional.get();
+
+        order.setStatus(OrderStatus.DELIVERED);
+        orderRepository.save(order);
+
+        String message = "Заказ успешно доставлен";
+        String url = "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN + "/sendMessage?chat_id=" + TELEGRAM_CHAT_ID + "&text=" + message;
+        restTemplate.getForObject(url, String.class);
+        String text = "✅ Ваш заказ №" + id + " Доставлен";
         String url1 = "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN + "/sendMessage?chat_id=" + CUSTOMER_CHAT_ID + "&text=" + text;
         restTemplate.getForObject(url1, String.class);
     }

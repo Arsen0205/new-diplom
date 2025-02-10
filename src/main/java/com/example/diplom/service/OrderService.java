@@ -94,7 +94,7 @@ public class OrderService {
             orderItems.add(orderItem);
 
             // Уменьшаем количество товара на складе
-            product.setQuantity(product.getQuantity() - itemDto.getQuantity());
+            //product.setQuantity(product.getQuantity() - itemDto.getQuantity());
             productRepository.save(product);
         }
 
@@ -121,12 +121,12 @@ public class OrderService {
 
 
     //Обновления статуса заказа
-    public Order updateOrderStatus(Long id, OrderStatus status) {
-        return orderRepository.findById(id).map(order -> {
-            order.setStatus(status);
-            return orderRepository.save(order);
-        }).orElseThrow(() -> new RuntimeException("Заказ не найден"));
-    }
+//    public Order updateOrderStatus(Long id, OrderStatus status) {
+//        return orderRepository.findById(id).map(order -> {
+//            order.setStatus(status);
+//            return orderRepository.save(order);
+//        }).orElseThrow(() -> new RuntimeException("Заказ не найден"));
+//    }
 
     //Удаление заказа
     public void deleteOrder(Long id) {
@@ -142,6 +142,7 @@ public class OrderService {
         }).orElseThrow(() -> new RuntimeException("Заказ не найден"));
     }
 
+    //Отмена заказа через сайт
     public Order cancelledOrder(ConfirmedOrderDtoRequest request){
         return orderRepository.findById(request.getId()).map(order -> {
             order.setStatus(OrderStatus.CANCELLED);
@@ -149,4 +150,23 @@ public class OrderService {
             return orderRepository.save(order);
         }).orElseThrow(()-> new RuntimeException("Заказ не найден"));
     }
+
+    //Изменение статуса заказа на - в пути
+    public Order shippedOrder(ConfirmedOrderDtoRequest request){
+        return orderRepository.findById(request.getId()).map(order -> {
+            order.setStatus(OrderStatus.SHIPPED);
+            telegramNotificationService.shippedOrder(request.getId());
+            return orderRepository.save(order);
+        }).orElseThrow(() -> new RuntimeException("Заказ не найден"));
+    }
+
+    //Изменение статуса заказа на - доставлен
+    public Order deliveredOrder(ConfirmedOrderDtoRequest request){
+        return orderRepository.findById(request.getId()).map(order -> {
+            order.setStatus(OrderStatus.DELIVERED);
+            telegramNotificationService.deliveredOrder(request.getId());
+            return orderRepository.save(order);
+        }).orElseThrow(() -> new RuntimeException("Заказ не найден"));
+    }
+
 }

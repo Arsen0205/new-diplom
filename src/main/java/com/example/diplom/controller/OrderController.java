@@ -33,10 +33,10 @@ public class OrderController {
         return order.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @PutMapping("/{id}/status")
-    public ResponseEntity<Order> updateOrderStatus(@RequestBody Long id,  OrderStatus status) {
-        return ResponseEntity.ok(orderService.updateOrderStatus(id, status));
-    }
+//    @PutMapping("/{id}/status")
+//    public ResponseEntity<Order> updateOrderStatus(@RequestBody Long id,  OrderStatus status) {
+//        return ResponseEntity.ok(orderService.updateOrderStatus(id, status));
+//    }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteOrder(@PathVariable Long id) {
@@ -58,5 +58,15 @@ public class OrderController {
     @PostMapping("/cancelled")
     public ResponseEntity<Order> cancelledOrder(@RequestBody ConfirmedOrderDtoRequest request){
         return ResponseEntity.ok(orderService.cancelledOrder(request));
+    }
+
+    @PostMapping("/delivered")
+    public ResponseEntity<Order> deliveredOrder(@RequestBody ConfirmedOrderDtoRequest request){
+        return ResponseEntity.ok(orderService.deliveredOrder(request));
+    }
+
+    @PostMapping("/shipped")
+    public ResponseEntity<Order> shippedOrder(@RequestBody ConfirmedOrderDtoRequest request){
+        return ResponseEntity.ok(orderService.shippedOrder(request));
     }
 }
